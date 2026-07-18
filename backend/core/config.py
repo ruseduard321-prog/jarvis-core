@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     openai_api_base: str | None = None
     openai_api_version: str | None = None
+    default_embedding_provider: str = "openai"
+    openai_embedding_model: str = "text-embedding-3-small"
 
     class Config:
         env_file = ".env"

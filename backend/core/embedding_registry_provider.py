@@ -1,0 +1,5 @@
+from backend.core.embedding_provider_registry import EmbeddingProviderRegistry
+from backend.core.openai_embedding_provider import OpenAIEmbeddingProvider
+
+embedding_provider_registry = EmbeddingProviderRegistry()
+embedding_provider_registry.register(OpenAIEmbeddingProvider())

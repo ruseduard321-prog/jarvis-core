@@ -1,0 +1,3 @@
+from backend.core.knowledge_repository import InMemoryKnowledgeRepository, KnowledgeRepository
+
+knowledge_repository: KnowledgeRepository = InMemoryKnowledgeRepository()
