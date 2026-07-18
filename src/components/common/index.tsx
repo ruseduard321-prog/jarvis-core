@@ -3,6 +3,11 @@
 import { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 
+// Re-export components
+export * from "./placeholder-page";
+export * from "./error-boundary";
+export * from "./loading";
+
 interface BreadcrumbProps {
   items: Array<{
     label: string;

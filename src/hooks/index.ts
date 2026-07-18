@@ -232,3 +232,6 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
     [callback, delay]
   );
 }
+
+// Export navigation hooks
+export * from "./use-navigation";
