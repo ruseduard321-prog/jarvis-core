@@ -1,4 +1,4 @@
-import { AppShell } from "@/components/layout";
+import { ProtectedAppLayout } from "@/components/layout/protected-app-layout";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -10,5 +10,5 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AppShell>{children}</AppShell>;
+  return <ProtectedAppLayout>{children}</ProtectedAppLayout>;
 }

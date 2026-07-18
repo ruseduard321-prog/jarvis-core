@@ -1,8 +1,14 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from "axios";
-import { API_BASE_URL } from "@/constants";
-import { useAuthStore } from "@/store";
-import type { ApiResponse } from "@/types";
+import { API_BASE_URL, API_ENDPOINTS } from "@/constants";
+import type { ApiResponse, AuthSession } from "@/types";
 
+/**
+ * API Client Service
+ * 
+ * Handles HTTP requests with automatic token refresh and error handling.
+ * This is a utility class that doesn't use React hooks directly.
+ * Token management is handled by the AuthProvider and stored in localStorage.
+ */
 class ApiClient {
   private client: AxiosInstance;
   private refreshPromise: Promise<string> | null = null;
@@ -16,45 +22,56 @@ class ApiClient {
       },
     });
 
-    // Request interceptor
+    // Request interceptor - add Bearer token to requests
     this.client.interceptors.request.use((config) => {
-      const { token } = useAuthStore();
+      const token = this.getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
       return config;
     });
 
-    // Response interceptor
+    // Response interceptor - handle 401 and refresh token
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
+        // Only retry on 401 and not already retried
         if (error.response?.status === 401 && !originalRequest._retry) {
+          // If refresh is already in progress, wait for it
           if (this.refreshPromise) {
-            const token = await this.refreshPromise;
-            if (token && originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
+            try {
+              const newToken = await this.refreshPromise;
+              if (newToken && originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+              }
+              return this.client(originalRequest);
+            } catch {
+              // Refresh failed, reject original request
+              return Promise.reject(error);
             }
-            return this.client(originalRequest);
           }
 
+          // Mark request as retried to prevent infinite loop
           originalRequest._retry = true;
-          this.refreshPromise = this.refreshToken();
+
+          // Start refresh token flow
+          this.refreshPromise = this.refreshAccessToken();
 
           try {
-            const token = await this.refreshPromise;
+            const newToken = await this.refreshPromise;
             this.refreshPromise = null;
 
-            if (token && originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
+            if (newToken && originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
             }
             return this.client(originalRequest);
           } catch {
-            useAuthStore().clearAuth();
+            // Refresh failed, clear auth and reject
+            this.clearTokens();
             this.refreshPromise = null;
-            throw error;
+            return Promise.reject(error);
           }
         }
 
@@ -63,14 +80,106 @@ class ApiClient {
     );
   }
 
-  private async refreshToken(): Promise<string> {
+  /**
+   * Get access token from localStorage
+   */
+  private getAccessToken(): string | null {
+    if (typeof window === "undefined") return null;
     try {
-      const response = await this.client.post<{ token: string }>("/auth/refresh");
-      const { token } = response.data;
-      useAuthStore().setAuth(token, useAuthStore().userId || "");
-      return token;
+      const authData = localStorage.getItem("auth-storage");
+      if (!authData) return null;
+      const parsed = JSON.parse(authData);
+      return parsed.state?.accessToken || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get refresh token from localStorage
+   */
+  private getRefreshToken(): string | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const authData = localStorage.getItem("auth-storage");
+      if (!authData) return null;
+      const parsed = JSON.parse(authData);
+      return parsed.state?.refreshToken || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Update tokens in localStorage
+   */
+  private setTokens(accessToken: string, refreshToken: string, expiresAt: string): void {
+    if (typeof window === "undefined") return;
+    try {
+      const authData = localStorage.getItem("auth-storage");
+      if (!authData) return;
+      const parsed = JSON.parse(authData);
+      parsed.state = {
+        ...parsed.state,
+        accessToken,
+        refreshToken,
+        expiresAt,
+      };
+      localStorage.setItem("auth-storage", JSON.stringify(parsed));
+    } catch {
+      // Ignore
+    }
+  }
+
+  /**
+   * Clear tokens from localStorage
+   */
+  private clearTokens(): void {
+    if (typeof window === "undefined") return;
+    try {
+      const authData = localStorage.getItem("auth-storage");
+      if (!authData) return;
+      const parsed = JSON.parse(authData);
+      parsed.state = {
+        ...parsed.state,
+        accessToken: null,
+        refreshToken: null,
+        expiresAt: null,
+        user: null,
+        userId: null,
+        isAuthenticated: false,
+      };
+      localStorage.setItem("auth-storage", JSON.stringify(parsed));
+    } catch {
+      // Ignore
+    }
+  }
+
+  /**
+   * Refresh the access token using the refresh token
+   */
+  private async refreshAccessToken(): Promise<string> {
+    try {
+      const refreshToken = this.getRefreshToken();
+
+      if (!refreshToken) {
+        throw new Error("No refresh token available");
+      }
+
+      const response = await this.client.post<AuthSession>(
+        API_ENDPOINTS.AUTH.REFRESH,
+        { refresh_token: refreshToken }
+      );
+
+      const { access_token, refresh_token, expires_at } = response.data;
+
+      // Update tokens in localStorage
+      this.setTokens(access_token, refresh_token, expires_at);
+
+      return access_token;
     } catch (error) {
-      useAuthStore().clearAuth();
+      // Clear auth on refresh failure
+      this.clearTokens();
       throw error;
     }
   }
@@ -153,10 +262,13 @@ class ApiClient {
     }
   }
 
+  /**
+   * Handle API errors and return normalized error response
+   */
   private handleError(error: unknown): ApiResponse {
     if (axios.isAxiosError(error)) {
       return {
-        error: error.response?.data?.error || error.message,
+        error: error.response?.data?.error || error.response?.data?.message || error.message,
         status: error.response?.status || 500,
       };
     }

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { AuthUser, AuthSession } from "@/types";
 
 // Theme Store
 interface ThemeState {
@@ -44,22 +45,106 @@ export const useUiStore = create<UiState>((set) => ({
 
 // Auth Store
 interface AuthState {
-  token: string | null;
-  userId: string | null;
-  setAuth: (token: string, userId: string) => void;
+  // Tokens
+  accessToken: string | null;
+  refreshToken: string | null;
+  expiresAt: string | null;
+
+  // User data
+  user: AuthUser | null;
+  userId: string | null; // For backward compatibility
+
+  // Status
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+
+  // Actions
+  setAuth: (session: AuthSession, user: AuthUser) => void;
+  setUser: (user: AuthUser) => void;
+  setTokens: (accessToken: string, refreshToken: string, expiresAt: string) => void;
   clearAuth: () => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  getAccessToken: () => string | null;
+  hasValidToken: () => boolean;
+  isTokenExpired: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
-      token: null,
+    (set, get) => ({
+      accessToken: null,
+      refreshToken: null,
+      expiresAt: null,
+      user: null,
       userId: null,
-      setAuth: (token, userId) => set({ token, userId }),
-      clearAuth: () => set({ token: null, userId: null }),
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+
+      setAuth: (session, user) =>
+        set({
+          accessToken: session.access_token,
+          refreshToken: session.refresh_token,
+          expiresAt: session.expires_at,
+          user,
+          userId: user.id,
+          isAuthenticated: true,
+          error: null,
+        }),
+
+      setUser: (user) =>
+        set({
+          user,
+          userId: user.id,
+        }),
+
+      setTokens: (accessToken, refreshToken, expiresAt) =>
+        set({
+          accessToken,
+          refreshToken,
+          expiresAt,
+          isAuthenticated: true,
+        }),
+
+      clearAuth: () =>
+        set({
+          accessToken: null,
+          refreshToken: null,
+          expiresAt: null,
+          user: null,
+          userId: null,
+          isAuthenticated: false,
+          error: null,
+        }),
+
+      setLoading: (loading) => set({ isLoading: loading }),
+      setError: (error) => set({ error }),
+
+      getAccessToken: () => get().accessToken,
+
+      hasValidToken: () => {
+        const token = get().accessToken;
+        return !!token;
+      },
+
+      isTokenExpired: () => {
+        const expiresAt = get().expiresAt;
+        if (!expiresAt) return true;
+        return new Date(expiresAt) <= new Date();
+      },
     }),
     {
       name: "auth-storage",
+      // Only persist sensitive fields
+      partialize: (state) => ({
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        expiresAt: state.expiresAt,
+        user: state.user,
+        userId: state.userId,
+      }),
     }
   )
 );

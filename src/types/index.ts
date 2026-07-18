@@ -15,6 +15,18 @@ export interface PaginatedResponse<T> {
 }
 
 // Auth types
+export interface AuthUser {
+  id: string;
+  email: string;
+  full_name?: string | null;
+}
+
+export interface AuthSession {
+  access_token: string;
+  refresh_token: string;
+  expires_at: string; // ISO 8601 datetime
+}
+
 export interface User {
   id: string;
   email: string;
@@ -24,10 +36,17 @@ export interface User {
   updatedAt: string;
 }
 
-export interface AuthContext {
-  user: User | null;
+export type AuthStatus = "unauthenticated" | "authenticated" | "loading" | "error";
+
+export interface AuthContextValue {
+  user: AuthUser | null;
+  status: AuthStatus;
   isAuthenticated: boolean;
   isLoading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  restoreSession: () => Promise<void>;
 }
 
 // Conversation types

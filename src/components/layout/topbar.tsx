@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, Bell, Moon, Sun, LogOut, Settings, HelpCircle, User } from "lucide-react";
+import { Search, Bell, Moon, Sun, LogOut, Settings, HelpCircle, User, Loader2 } from "lucide-react";
 import { cn } from "@/utils";
 import { useBreadcrumbs } from "@/hooks/use-navigation";
 import { useThemeStore } from "@/store";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Popover } from "@/components/ui/popover";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useBoolean } from "@/hooks";
+import { useAuth } from "@/providers/auth-provider";
 
 interface TopBarProps {
   className?: string;
@@ -236,48 +237,93 @@ function ThemeToggle() {
 }
 
 /**
- * User Menu (Placeholder)
+ * User Menu (Authenticated)
  */
 function UserMenu() {
+  const { user, logout, isLoading } = useAuth();
+
+  // Get initials from user name or email
+  const getInitials = (user: any) => {
+    if (user?.full_name) {
+      return user.full_name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase();
+    }
+    return user?.email?.[0]?.toUpperCase() || "?";
+  };
+
   return (
     <Popover
       trigger={
         <Button size="sm" variant="ghost" aria-label="User menu" className="px-2">
           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-xs font-bold text-primary-foreground">
-            JD
+            {getInitials(user)}
           </div>
         </Button>
       }
     >
-      <UserMenuPanel />
+      <UserMenuPanel user={user} logout={logout} isLoading={isLoading} />
     </Popover>
   );
 }
 
+interface UserMenuPanelProps {
+  user: any;
+  logout: () => Promise<void>;
+  isLoading: boolean;
+}
+
 /**
- * User Menu Panel (Mock Data)
+ * User Menu Panel (Authenticated)
  */
-function UserMenuPanel() {
+function UserMenuPanel({ user, logout, isLoading }: UserMenuPanelProps) {
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  const displayName = user?.full_name || user?.email?.split("@")[0] || "User";
+  const displayEmail = user?.email || "";
+
   return (
     <div className="w-56">
       {/* User Info */}
       <div className="border-b border-border p-4">
-        <h4 className="font-semibold">John Doe</h4>
-        <p className="text-xs text-muted-foreground">john@example.com</p>
+        <h4 className="font-semibold truncate">{displayName}</h4>
+        <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
       </div>
 
       {/* Menu Items */}
       <div className="divide-y divide-border">
         <div className="p-2">
-          <button className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors">
+          <button
+            disabled={isLoading || isLoggingOut}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <User className="h-4 w-4" />
             Profile
           </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors">
+          <button
+            disabled={isLoading || isLoggingOut}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Settings className="h-4 w-4" />
             Preferences
           </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors">
+          <button
+            disabled={isLoading || isLoggingOut}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <HelpCircle className="h-4 w-4" />
             Help & Support
           </button>
@@ -285,9 +331,22 @@ function UserMenuPanel() {
 
         {/* Logout */}
         <div className="p-2">
-          <button className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-destructive/10 transition-colors text-destructive">
-            <LogOut className="h-4 w-4" />
-            Logout
+          <button
+            onClick={handleLogout}
+            disabled={isLoading || isLoggingOut}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-destructive/10 transition-colors text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoggingOut ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Logging out...
+              </>
+            ) : (
+              <>
+                <LogOut className="h-4 w-4" />
+                Logout
+              </>
+            )}
           </button>
         </div>
       </div>

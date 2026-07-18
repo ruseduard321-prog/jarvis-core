@@ -4,9 +4,8 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost
 export const API_ENDPOINTS = {
   // Auth
   AUTH: {
-    LOGIN: "/auth/login",
-    LOGOUT: "/auth/logout",
-    REGISTER: "/auth/register",
+    SIGN_IN: "/auth/sign-in",
+    SIGN_OUT: "/auth/sign-out",
     ME: "/auth/me",
     REFRESH: "/auth/refresh",
   },
