@@ -10,7 +10,7 @@ from backend.core.dependencies import (
     get_retrieval_engine,
     get_embedding_provider,
 )
-from backend.core.memory_models import MemoryMetadata, MemoryRecord
+from backend.core.memory_models import MemoryMetadata, MemoryQuery
 from backend.core.knowledge_models import KnowledgeDocument, KnowledgeChunk, KnowledgeSource, KnowledgeSourceType
 from backend.core.retrieval_models import RetrievalRequest, RetrievedDocument
 from backend.schemas.knowledge import (
@@ -20,6 +20,7 @@ from backend.schemas.knowledge import (
     MemoryQueryRequest,
     KnowledgeDocumentCreateRequest,
     KnowledgeDocumentResponse,
+    KnowledgeDocumentListResponse,
     RetrievalQueryRequest,
     RetrievalQueryResponse,
     RetrievalDocument,
@@ -44,14 +45,12 @@ async def create_memory(
             tags=request.tags,
             attributes=request.attributes,
         )
-        record = MemoryRecord(
-            id=str(uuid.uuid4()),
+        created = await memory_service.create_memory(
             record_type=request.record_type,
             content=request.content,
             metadata=metadata,
         )
-        created = await memory_service.create_memory(record)
-        
+
         return MemoryResponse(
             id=created.id,
             record_type=created.record_type,
@@ -59,8 +58,8 @@ async def create_memory(
             source=created.metadata.source,
             tags=created.metadata.tags,
             attributes=created.metadata.attributes,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=created.created_at,
+            updated_at=created.updated_at,
         )
     except Exception as e:
         raise HTTPException(
@@ -104,20 +103,16 @@ async def update_memory(
     """Update a memory record."""
     try:
         record = await memory_service.get_memory(memory_id)
-        
+
         # Update record
-        updated_record = MemoryRecord(
-            id=record.id,
-            record_type=record.record_type,
-            content=request.content or record.content,
-            metadata=MemoryMetadata(
-                source=record.metadata.source,
-                tags=request.tags or record.metadata.tags,
-                attributes=request.attributes or record.metadata.attributes,
-            ),
+        updated_content = request.content or record.content
+        updated_metadata = MemoryMetadata(
+            source=record.metadata.source,
+            tags=request.tags or record.metadata.tags,
+            attributes=request.attributes or record.metadata.attributes,
         )
-        updated = await memory_service.update_memory(memory_id, updated_record)
-        
+        updated = await memory_service.update_memory(memory_id, updated_content, updated_metadata)
+
         return MemoryResponse(
             id=updated.id,
             record_type=updated.record_type,
@@ -125,8 +120,8 @@ async def update_memory(
             source=updated.metadata.source,
             tags=updated.metadata.tags,
             attributes=updated.metadata.attributes,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=updated.created_at,
+            updated_at=updated.updated_at,
         )
     except Exception as e:
         raise HTTPException(
@@ -157,18 +152,45 @@ async def query_memory(
 ) -> list[MemoryResponse]:
     """Query memory records."""
     try:
-        # Build query filters
-        attributes = {}
-        if request.tags:
-            attributes["tags"] = request.tags
-        if request.record_type:
-            attributes["record_type"] = request.record_type
-            
-        results = await memory_service.query_memory(
-            query=request.query or "",
-            attributes=attributes,
+        query = MemoryQuery(
+            record_type=request.record_type,
+            tags=request.tags,
             limit=request.limit,
         )
+        result = await memory_service.query_memory(query)
+
+        return [
+            MemoryResponse(
+                id=r.id,
+                record_type=r.record_type,
+                content=r.content,
+                source=r.metadata.source,
+                tags=r.metadata.tags,
+                attributes=r.metadata.attributes,
+                created_at=r.created_at,
+                updated_at=r.updated_at,
+            )
+            for r in result.records
+        ]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+@router.get("/memory", response_model=list[MemoryResponse])
+async def list_memory(
+    limit: int = 20,
+    offset: int = 0,
+    memory_service=Depends(get_memory_service),
+) -> list[MemoryResponse]:
+    """List all memory records with pagination."""
+    try:
+        from backend.core.memory_models import MemoryQuery
+        
+        # Use list_memory for simple listing (not querying with filters)
+        result = await memory_service.list_memory(limit=limit, offset=offset)
         
         return [
             MemoryResponse(
@@ -178,10 +200,10 @@ async def query_memory(
                 source=r.metadata.source,
                 tags=r.metadata.tags,
                 attributes=r.metadata.attributes,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=r.created_at,
+                updated_at=r.updated_at,
             )
-            for r in results
+            for r in result.records
         ]
     except Exception as e:
         raise HTTPException(
@@ -191,56 +213,41 @@ async def query_memory(
 
 
 # ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+def _document_to_response(doc) -> KnowledgeDocumentResponse:
+    """Convert a repository document to a response model."""
+    return KnowledgeDocumentResponse(
+        id=doc.id,
+        title=doc.title,
+        source_type=doc.source.type.value,
+        source_identifier=doc.source.identifier,
+        chunk_count=len(doc.chunks) if doc.chunks else 0,
+        tags=getattr(doc.metadata, 'tags', []) if hasattr(doc.metadata, 'tags') else [],
+        metadata=doc.metadata if isinstance(doc.metadata, dict) else {},
+        created_at=doc.created_at,
+        updated_at=doc.updated_at,
+    )
+
+
+# ============================================================
 # KNOWLEDGE DOCUMENT ENDPOINTS
 # ============================================================
 
-@router.post("/knowledge/documents", response_model=KnowledgeDocumentResponse, status_code=status.HTTP_201_CREATED)
-async def create_knowledge_document(
-    request: KnowledgeDocumentCreateRequest,
+@router.get("/knowledge/documents", response_model=KnowledgeDocumentListResponse)
+async def list_knowledge_documents(
     knowledge_repo=Depends(get_knowledge_repository),
-    embedding_provider=Depends(get_embedding_provider),
-) -> KnowledgeDocumentResponse:
-    """Create a knowledge document."""
+) -> KnowledgeDocumentListResponse:
+    """List all knowledge documents."""
     try:
-        source = KnowledgeSource(
-            type=KnowledgeSourceType(request.source_type),
-            identifier=request.source_identifier or request.title,
-        )
-        
-        document = KnowledgeDocument(
-            id=str(uuid.uuid4()),
-            title=request.title,
-            content=request.content,
-            source=source,
-            metadata=request.metadata,
-        )
-        
-        # Create document chunks (simple chunking: split by sentences)
-        chunks = []
-        sentences = request.content.split(". ")
-        for i, sentence in enumerate(sentences):
-            if sentence.strip():
-                chunk = KnowledgeChunk(
-                    id=str(uuid.uuid4()),
-                    document_id=document.id,
-                    content=sentence.strip() + ".",
-                    chunk_index=i,
-                )
-                chunks.append(chunk)
-        
-        # Store document
-        created = await knowledge_repo.create_document(document, chunks)
-        
-        return KnowledgeDocumentResponse(
-            id=created.id,
-            title=created.title,
-            source_type=created.source.type.value,
-            source_identifier=created.source.identifier,
-            chunk_count=len(chunks),
-            tags=request.tags,
-            metadata=created.metadata,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+        documents, total_count = await knowledge_repo.list_documents()
+        doc_responses = [_document_to_response(doc) for doc in documents]
+
+        return KnowledgeDocumentListResponse(
+            documents=doc_responses,
+            total_count=total_count,
+            timestamp=datetime.utcnow(),
         )
     except Exception as e:
         raise HTTPException(
@@ -257,19 +264,7 @@ async def get_knowledge_document(
     """Get a knowledge document by ID."""
     try:
         document = await knowledge_repo.get_document(document_id)
-        chunks = await knowledge_repo.get_chunks(document_id)
-        
-        return KnowledgeDocumentResponse(
-            id=document.id,
-            title=document.title,
-            source_type=document.source.type.value,
-            source_identifier=document.source.identifier,
-            chunk_count=len(chunks),
-            tags=[],
-            metadata=document.metadata,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-        )
+        return _document_to_response(document)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -313,7 +308,7 @@ async def retrieve_context(
         )
         
         # Execute retrieval
-        result = await retrieval_engine.execute(retrieval_request)
+        result = await retrieval_engine.retrieve(retrieval_request)
         
         # Convert to response format
         documents = [
@@ -323,7 +318,7 @@ async def retrieve_context(
                 content=doc.content,
                 source=doc.source,
                 tags=doc.metadata.get("tags", []) if doc.metadata else [],
-                similarity_score=doc.similarity_score,
+                similarity_score=doc.score,
             )
             for doc in result.documents
         ]

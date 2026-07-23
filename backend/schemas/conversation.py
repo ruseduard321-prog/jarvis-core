@@ -116,6 +116,10 @@ class ChatCompletionRequest(BaseModel):
     message: str = Field(description="User message")
     use_rag: bool = Field(default=True, description="Whether to use RAG for context")
     stream: bool = Field(default=False, description="Whether to stream response")
+    agent_id: str | None = Field(None, description="Optional agent ID for runtime-based execution")
+    system_prompt: str | None = Field(None, description="Optional custom system prompt")
+    temperature: float | None = Field(None, description="Temperature for sampling (0.0-2.0)")
+    max_tokens: int | None = Field(None, description="Maximum tokens to generate")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Optional metadata")
 
     class Config:
@@ -125,6 +129,9 @@ class ChatCompletionRequest(BaseModel):
                 "message": "Summarize the project timeline",
                 "use_rag": True,
                 "stream": False,
+                "system_prompt": "You are a project manager",
+                "temperature": 0.7,
+                "max_tokens": 2000,
                 "metadata": {"model": "gpt-4"},
             }
         }

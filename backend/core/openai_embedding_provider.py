@@ -57,9 +57,12 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         )
 
         embeddings = [item.embedding for item in response.data]
+        # The Embeddings API's Usage object only has prompt_tokens/total_tokens (no
+        # completion_tokens — unlike Chat Completions' Usage) since there is no output
+        # generation step; output_tokens has no equivalent here and is left unset.
         usage = EmbeddingUsage(
             input_tokens=response.usage.prompt_tokens if response.usage else None,
-            output_tokens=response.usage.completion_tokens if response.usage else None,
+            output_tokens=None,
             total_tokens=response.usage.total_tokens if response.usage else None,
         )
 

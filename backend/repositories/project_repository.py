@@ -49,6 +49,8 @@ class ProjectRepository(BaseRepository[Project]):
                 raise DatabaseUnavailableError()
 
             return ProjectMapper.from_row(rows[0])
+        except DatabaseUnavailableError:
+            raise
         except Exception as exc:
             logger.exception("Error creating project in Supabase")
             raise RepositoryError() from exc

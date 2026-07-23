@@ -23,7 +23,7 @@ const Popover = React.forwardRef<HTMLDivElement, PopoverProps>(
     ref
   ) => {
     const [isOpen, setIsOpen] = React.useState(false);
-    const triggerRef = React.useRef<HTMLButtonElement>(null);
+    const triggerRef = React.useRef<HTMLDivElement>(null);
     const contentRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -80,13 +80,15 @@ const Popover = React.forwardRef<HTMLDivElement, PopoverProps>(
 
     return (
       <div ref={ref} className="relative inline-block">
-        <button
+        {/* Use a div wrapper so any trigger (button, link, etc.) is valid HTML */}
+        <div
           ref={triggerRef}
           onClick={() => setIsOpen(!isOpen)}
           className="inline-flex"
+          role="presentation"
         >
           {trigger}
-        </button>
+        </div>
         {isOpen && (
           <div
             ref={contentRef}

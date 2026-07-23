@@ -56,6 +56,9 @@ class MemoryService:
     async def query_memory(self, query: MemoryQuery) -> MemoryResult:
         return await self._store.query_memory(query)
 
+    async def list_memory(self, limit: int = 20, offset: int = 0) -> MemoryResult:
+        return await self._store.list_memory(limit, offset)
+
     def _serialize_record(self, record: MemoryRecord) -> dict[str, Any]:
         return {
             "id": record.id,

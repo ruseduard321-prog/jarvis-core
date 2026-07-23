@@ -1,12 +1,5 @@
-import { PlaceholderPage } from "@/components/common/placeholder-page";
-import { BookOpen } from "lucide-react";
+import { KnowledgePage } from "@/components/knowledge";
 
-export default function KnowledgePage() {
-  return (
-    <PlaceholderPage
-      title="Knowledge Base"
-      description="Manage your knowledge base and documents. Document management interface coming soon."
-      icon={<BookOpen className="h-12 w-12 text-muted-foreground" />}
-    />
-  );
+export default function Knowledge() {
+  return <KnowledgePage />;
 }

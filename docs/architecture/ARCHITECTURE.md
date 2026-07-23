@@ -2,7 +2,7 @@
 
 Jarvis is designed as a modular platform that connects a modern frontend with an API-driven backend, AI services, automation tooling, and a managed database. The system supports the first product, an English YouTube business, while providing a foundation for future businesses and products.
 
-The platform is built with a web frontend on Next.js and React, a Python backend with FastAPI, and a Supabase-managed PostgreSQL database. Authentication is handled by Supabase Auth, automation is orchestrated through n8n, and the first AI provider is Claude.
+The platform is built with a web frontend on Next.js and React, a Python backend with FastAPI, and a Supabase-managed PostgreSQL database. Authentication is handled by Supabase Auth, and the first AI provider is OpenAI.
 
 # Core Components
 
@@ -24,11 +24,11 @@ Authentication is managed through Supabase Auth. It handles user identity, sessi
 
 ## Automation
 
-Automation is orchestrated through n8n. It enables the platform to model workflows, trigger processes, and integrate external services without embedding workflow logic directly inside the frontend or backend.
+Automation is not yet integrated into the platform. No workflow engine is currently wired into the frontend or backend.
 
 ## AI Layer
 
-The AI layer is responsible for operational execution by agents. In Sprint 1, Claude is the primary provider. The architecture allows for future expansion to additional AI providers, maintaining a clear separation between the AI layer and core business logic.
+The AI layer is responsible for operational execution by agents. OpenAI is the primary and only configured provider (`AgentRuntime` / `AgentOrchestrator` in `backend/core/`, calling the OpenAI Responses API). The architecture allows for future expansion to additional AI providers, maintaining a clear separation between the AI layer and core business logic.
 
 # System Responsibilities
 
@@ -36,7 +36,7 @@ The AI layer is responsible for operational execution by agents. In Sprint 1, Cl
 - Backend: expose APIs, enforce business rules, validate inputs, and coordinate interactions between systems.
 - Database: persist the platform’s state and support queryable access to operational data.
 - Authentication: verify users, manage sessions, and provide identity context for authorization.
-- Automation: execute predefined workflows, handle event-driven tasks, and connect actions across systems.
+- Automation: intended to execute predefined workflows, handle event-driven tasks, and connect actions across systems (not yet integrated).
 - AI Layer: perform operational work, execute agent tasks, and surface exceptions for human review.
 
 # Data Flow
@@ -67,7 +67,7 @@ A human user interacts with the frontend. The frontend sends requests to the bac
 
 The architecture is intended to support future growth, including multiple AI providers, multiple products, and multiple businesses. It also anticipates adding background workers, vector database support, and event-driven patterns as the platform evolves.
 
-- Multiple AI providers: The AI layer can integrate additional providers beyond Claude.
+- Multiple AI providers: The AI layer can integrate additional providers beyond OpenAI.
 - Multiple products: The same core platform can operate new business lines and product types.
 - Multiple businesses: Jarvis is built to support a portfolio of businesses through a shared operating system.
 - Background workers: As needs grow, background processing can handle longer-running tasks and asynchronous work.
@@ -83,12 +83,13 @@ jarvis-core/
 ├── app/
 ├── backend/
 │   ├── api/
+│   ├── auth/
 │   ├── core/
 │   ├── models/
 │   ├── services/
 │   ├── repositories/
 │   ├── schemas/
-│   ├── agents/
+│   ├── tools/
 │   ├── utils/
 │   └── main.py
 │
@@ -97,12 +98,13 @@ jarvis-core/
 └── ...
 
 - backend/api/: API route definitions, request handling, and versioned endpoints.
-- backend/core/: Shared business logic, application setup, and orchestration utilities.
+- backend/auth/: Authentication middleware, models, and Supabase Auth integration.
+- backend/core/: Shared business logic, application setup, and orchestration utilities, including AI agent coordination (`AgentRuntime`, `AgentOrchestrator`) and LLM provider integration.
 - backend/models/: Domain and ORM models representing business entities.
 - backend/services/: Service layer classes that implement business operations.
 - backend/repositories/: Data access and persistence abstractions following the repository pattern.
 - backend/schemas/: Pydantic schemas for request, response, and validation models.
-- backend/agents/: AI agent coordination, task orchestration, and agent-specific logic.
+- backend/tools/: Agent-callable tools (memory, web/URL/PDF/markdown readers, vision, image generation).
 - backend/utils/: Utility functions, helpers, and common infrastructure code.
 - backend/main.py: Backend application entry point and service initialization.
 

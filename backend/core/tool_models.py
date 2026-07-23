@@ -1,56 +1,26 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Callable
-
-
-class ToolCategory(str, Enum):
-    """Category of tool for organization and access control."""
-
-    SEARCH = "search"
-    MEMORY = "memory"
-    KNOWLEDGE = "knowledge"
-    COMPUTATION = "computation"
-    EXTERNAL = "external"
-    SYSTEM = "system"
-
-
-@dataclass(frozen=True)
-class ToolParameter:
-    """Definition of a tool parameter."""
-
-    name: str
-    type: str  # e.g., "string", "number", "boolean", "array"
-    description: str | None = None
-    required: bool = True
-    default: Any | None = None
-    enum_values: list[Any] | None = None
+from typing import Any
 
 
 @dataclass(frozen=True)
 class ToolMetadata:
-    """Metadata for a tool."""
+    """Read-only metadata exposed for each registered tool."""
 
+    slug: str
     name: str
     description: str
-    category: ToolCategory
-    parameters: list[ToolParameter] = field(default_factory=list)
-    enabled: bool = True
-    timeout_seconds: int | None = None
-    requires_permission: str | None = None
-    tags: list[str] = field(default_factory=list)
-    extra: dict[str, Any] = field(default_factory=dict)
+    capabilities: list[str]
 
 
 @dataclass(frozen=True)
 class ToolResult:
-    """Result from tool execution."""
+    """Normalized result returned by the tool manager."""
 
     success: bool
     output: Any | None = None
     error: str | None = None
-    execution_time_ms: int | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

@@ -46,6 +46,18 @@ export const CommandPalette = React.forwardRef<HTMLDivElement, CommandPalettePro
         {} as Record<string, Command[]>
       );
 
+    const handleClose = useCallback(() => {
+      setInternalOpen(false);
+      setSearch("");
+      setSelectedIndex(0);
+      onClose?.();
+    }, [onClose]);
+
+    const handleSelectCommand = useCallback((cmd: Command) => {
+      window.location.href = cmd.href;
+      handleClose();
+    }, [handleClose]);
+
     // Handle keyboard shortcuts
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -80,20 +92,7 @@ export const CommandPalette = React.forwardRef<HTMLDivElement, CommandPalettePro
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [open, filteredCommands, selectedIndex]);
-
-    const handleClose = useCallback(() => {
-      setInternalOpen(false);
-      setSearch("");
-      setSelectedIndex(0);
-      onClose?.();
-    }, [onClose]);
-
-    const handleSelectCommand = (cmd: Command) => {
-      // Navigate to command href
-      window.location.href = cmd.href;
-      handleClose();
-    };
+    }, [open, filteredCommands, selectedIndex, handleClose, handleSelectCommand]);
 
     return (
       <Dialog

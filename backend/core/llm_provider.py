@@ -30,7 +30,14 @@ class LLMProvider(abc.ABC):
     async def stream(self, request: LLMRequest) -> AsyncIterator[LLMResponse]:
         """Support streaming foundation with a single response by default."""
         response = await self.generate(request)
-        yield response
+        yield LLMResponse(
+            id=response.id,
+            model=response.model,
+            output=response.output,
+            usage=response.usage,
+            raw_response=response.raw_response,
+            is_final=True,
+        )
 
     async def shutdown(self) -> None:
         """Shutdown provider resources if required."""

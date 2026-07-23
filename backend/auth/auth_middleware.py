@@ -8,11 +8,16 @@ from starlette.responses import Response
 
 from backend.auth.auth_models import AuthUser
 from backend.auth.supabase_auth import SupabaseAuthClient
+from backend.core.config import settings
 from backend.core.domain_exceptions import AuthenticationError
 
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
-    """Middleware that authenticates requests using Supabase access tokens."""
+    """Middleware that authenticates requests using Supabase access tokens.
+
+    In development (``settings.debug = True``) a special dev token is
+    accepted so the frontend can be tested without a live Supabase instance.
+    """
 
     def __init__(self, app, auth_client: SupabaseAuthClient, **kwargs) -> None:
         super().__init__(app, **kwargs)
@@ -29,5 +34,14 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             raise AuthenticationError("Invalid authorization header format")
 
         access_token = parts[1].strip()
+
+        # Development bypass — only active when DEBUG=True
+        if settings.debug:
+            from backend.auth.dev_auth import validate_dev_token  # lazy import
+            dev_user = validate_dev_token(access_token)
+            if dev_user is not None:
+                request.state.user = dev_user
+                return await call_next(request)
+
         request.state.user = self.auth_client.validate_token(access_token)
         return await call_next(request)

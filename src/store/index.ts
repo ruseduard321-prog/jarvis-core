@@ -80,7 +80,11 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       userId: null,
       isAuthenticated: false,
-      isLoading: false,
+      // Starts true: AuthProvider's init effect is the source of truth for whether a
+      // persisted session is actually valid, and route guards must wait for it before
+      // deciding to redirect — otherwise a child effect can redirect before the parent
+      // AuthProvider effect has had a chance to run (see useProtectedRoute).
+      isLoading: true,
       error: null,
 
       setAuth: (session, user) =>
@@ -144,6 +148,7 @@ export const useAuthStore = create<AuthState>()(
         expiresAt: state.expiresAt,
         user: state.user,
         userId: state.userId,
+        isAuthenticated: state.isAuthenticated,
       }),
     }
   )
@@ -155,6 +160,12 @@ interface ConversationState {
   setCurrentConversationId: (id: string | null) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  draftMessage: string;
+  setDraftMessage: (message: string) => void;
+  isStreaming: boolean;
+  setIsStreaming: (streaming: boolean) => void;
+  streamingMessageId: string | null;
+  setStreamingMessageId: (id: string | null) => void;
 }
 
 export const useConversationStore = create<ConversationState>((set) => ({
@@ -162,6 +173,12 @@ export const useConversationStore = create<ConversationState>((set) => ({
   setCurrentConversationId: (id) => set({ currentConversationId: id }),
   isLoading: false,
   setIsLoading: (loading) => set({ isLoading: loading }),
+  draftMessage: "",
+  setDraftMessage: (message) => set({ draftMessage: message }),
+  isStreaming: false,
+  setIsStreaming: (streaming) => set({ isStreaming: streaming }),
+  streamingMessageId: null,
+  setStreamingMessageId: (id) => set({ streamingMessageId: id }),
 }));
 
 // Notifications Store

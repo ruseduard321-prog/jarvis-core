@@ -68,6 +68,12 @@ export const mainNavigation: NavGroup[] = [
         description: "AI agents",
       },
       {
+        id: "tools",
+        label: "Tools",
+        href: "/tools",
+        description: "Available tool catalog",
+      },
+      {
         id: "workflows",
         label: "Workflows",
         href: "/workflows",
@@ -112,6 +118,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/chat": "Chat",
   "/knowledge": "Knowledge",
   "/agents": "Agents",
+  "/tools": "Tools",
   "/workflows": "Workflows",
   "/settings": "Settings",
   "/settings/profile": "Profile",

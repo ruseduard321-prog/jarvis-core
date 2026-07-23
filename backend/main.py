@@ -23,9 +23,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from backend.api.v1.router import router as api_router
 from backend.core.config import settings
+import logging
 
 configure_logging()
 startup_validate_settings()
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
 app.add_middleware(
@@ -47,6 +49,7 @@ app.add_middleware(
     endpoint_limits={
         "/api/v1/auth/sign-in": (20, 60),
         "/api/v1/auth/me": (60, 60),
+        "/api/v1/conversations": (1000, 60),
     },
 )
 app.add_middleware(AuthenticationMiddleware, auth_client=SupabaseAuthClient(get_database()))

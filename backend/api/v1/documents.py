@@ -11,7 +11,7 @@ from backend.core.dependencies import (
     get_vector_service,
 )
 from backend.core.document_ingestion import DocumentFormat
-from backend.core.knowledge_models import KnowledgeDocument, KnowledgeSource, KnowledgeSourceType
+from backend.core.knowledge_models import KnowledgeSource, KnowledgeSourceType
 from backend.schemas.knowledge import DocumentUploadResponse
 
 router = APIRouter(prefix="/documents", tags=["documents", "ingestion"])
@@ -74,29 +74,21 @@ async def upload_document(
             type=KnowledgeSourceType.DOCUMENT,
             identifier=filename,
         )
-        
-        knowledge_doc = KnowledgeDocument(
-            id=job.document_id,
+
+        # Store in knowledge repository
+        stored_doc = await knowledge_repo.create_document(
             title=doc_title,
             content="\n".join([chunk.content for chunk in chunks]),
             source=source,
             metadata={"namespace": namespace, "tags": tag_list},
         )
-        
-        # Store in knowledge repository
-        stored_doc = await knowledge_repo.create_document(
-            knowledge_doc,
-            chunks=[
-                __import__("backend.core.knowledge_models", fromlist=["KnowledgeChunk"]).KnowledgeChunk(
-                    id=chunk.id,
-                    document_id=job.document_id,
-                    content=chunk.content,
-                    chunk_index=chunk.chunk_index,
-                )
-                for chunk in chunks
-            ],
-        )
-        
+        for chunk in chunks:
+            await knowledge_repo.create_chunk(
+                document_id=stored_doc.id,
+                content=chunk.content,
+                chunk_index=chunk.chunk_index,
+            )
+
         # Generate embeddings and store vectors (if enabled)
         # For now, this is a placeholder
         

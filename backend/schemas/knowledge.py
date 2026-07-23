@@ -140,6 +140,35 @@ class KnowledgeDocumentResponse(BaseModel):
         }
 
 
+class KnowledgeDocumentListResponse(BaseModel):
+    """Response for listing knowledge documents."""
+
+    documents: list[KnowledgeDocumentResponse] = Field(description="List of documents")
+    total_count: int = Field(description="Total number of documents")
+    timestamp: datetime = Field(description="Response timestamp")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "documents": [
+                    {
+                        "id": "kdoc_xyz789",
+                        "title": "Project Requirements",
+                        "source_type": "DOCUMENT",
+                        "source_identifier": "docs/requirements.md",
+                        "chunk_count": 5,
+                        "tags": ["project"],
+                        "metadata": {},
+                        "created_at": "2026-07-18T10:00:00Z",
+                        "updated_at": "2026-07-18T10:00:00Z",
+                    }
+                ],
+                "total_count": 1,
+                "timestamp": "2026-07-19T15:00:00Z",
+            }
+        }
+
+
 # ============================================================
 # DOCUMENT INGESTION SCHEMAS
 # ============================================================

@@ -38,10 +38,16 @@ class LLMRequest:
 
 @dataclass(frozen=True)
 class LLMResponse:
-    """A standardized response from an LLM provider."""
+    """A standardized response from an LLM provider.
+
+    When yielded from `LLMProvider.stream()`, each chunk's `output` is an incremental
+    delta (not the accumulated text). The terminal chunk carries `is_final=True` along
+    with the completion's id/model/usage; its `output` is typically empty.
+    """
 
     id: str
     model: str
     output: str
     usage: LLMUsage | None = None
     raw_response: Any | None = None
+    is_final: bool = False

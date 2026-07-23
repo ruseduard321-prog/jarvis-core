@@ -1,12 +1,5 @@
-import { PlaceholderPage } from "@/components/common/placeholder-page";
-import { MessageSquare } from "lucide-react";
+import { ChatPage } from "@/components/chat/chat-page";
 
-export default function ChatPage() {
-  return (
-    <PlaceholderPage
-      title="Chat"
-      description="Start a conversation with your AI assistant. Real-time chat interface coming soon."
-      icon={<MessageSquare className="h-12 w-12 text-muted-foreground" />}
-    />
-  );
+export default function Page() {
+  return <ChatPage />;
 }

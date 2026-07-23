@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from threading import Lock
+from threading import RLock
 from typing import Any, Callable, Type, TypeVar
 
 T = TypeVar("T")
@@ -22,7 +22,7 @@ class ServiceRegistry:
 
     def __init__(self) -> None:
         self._registrations: dict[Type[Any], _ServiceRegistration] = {}
-        self._lock = Lock()
+        self._lock = RLock()
 
     def register_singleton(self, service_type: Type[T], factory: Callable[[], T]) -> None:
         """Register a lazily created singleton service."""

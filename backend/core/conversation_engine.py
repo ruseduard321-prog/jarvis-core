@@ -11,6 +11,9 @@ class ConversationEngine(Protocol):
     async def create_conversation(self, title: str | None = None, metadata: dict[str, object] | None = None) -> Conversation:
         raise NotImplementedError
 
+    async def list_conversations(self) -> list[Conversation]:
+        raise NotImplementedError
+
     async def load_conversation(self, conversation_id: str) -> Conversation:
         raise NotImplementedError
 

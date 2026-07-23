@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+from datetime import datetime
 
 
 class PromptRole(str, Enum):
@@ -10,6 +11,15 @@ class PromptRole(str, Enum):
     DEVELOPER = "developer"
     USER = "user"
     ASSISTANT = "assistant"
+
+
+class PromptCategory(str, Enum):
+    CHAT = "Chat"
+    SYSTEM = "System"
+    CODING = "Coding"
+    ANALYSIS = "Analysis"
+    WRITING = "Writing"
+    CREATIVE = "Creative"
 
 
 @dataclass(frozen=True)
@@ -38,3 +48,16 @@ class PromptTemplate:
 
     metadata: PromptTemplateMetadata
     messages: list[PromptMessage]
+
+
+@dataclass
+class Prompt:
+    """A user-created reusable prompt for the library."""
+
+    id: str
+    name: str
+    content: str
+    category: PromptCategory
+    favorite: bool = False
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)

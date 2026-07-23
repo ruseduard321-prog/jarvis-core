@@ -1,8 +1,7 @@
 from contextlib import asynccontextmanager
 import logging
 
-from backend.core.dependencies import get_database
-from backend.core.startup_validator import validate_startup
+from backend.core.dependencies import get_agent_service, get_database
 
 logger = logging.getLogger(__name__)
 
@@ -15,41 +14,36 @@ async def lifespan(app):
     # ============================================================
     try:
         logger.info("Starting backend services...")
-        
+
         # Connect database
         database = get_database()
         await database.connect()
         logger.info("✓ Database connected")
-        
-        # Run startup validation
-        logger.info("Running startup validation...")
-        report = await validate_startup()
-        logger.info(f"Startup validation complete: {report['summary']['status'].upper()}")
-        
-        # Check for critical failures
-        if report["summary"]["failed"] > 0:
-            logger.warning(f"Startup warnings: {report['summary']['warnings']} checks with warnings")
-        
+
+        # Seed core business agents for runtime selection.
+        try:
+            agent_service = get_agent_service()
+            seeded_agents = await agent_service.seed_core_business_agents(owner_user_id="system")
+            logger.info(f"✓ Seeded {len(seeded_agents)} core business agents")
+        except Exception as seed_error:
+            logger.warning(f"⚠ Agent seed skipped: {seed_error}")
         logger.info("✓ Backend ready for requests")
-        
+
     except Exception as e:
         logger.error(f"✗ Startup failed: {e}")
         raise
-    
+
+    yield
+
+    # ============================================================
+    # SHUTDOWN
+    # ============================================================
+    logger.info("Shutting down backend services...")
     try:
-        yield
-    finally:
-        # ============================================================
-        # SHUTDOWN
-        # ============================================================
-        logger.info("Shutting down backend services...")
-        
-        try:
-            database = get_database()
-            await database.disconnect()
-            logger.info("✓ Database disconnected")
-        except Exception as e:
-            logger.error(f"Error during database shutdown: {e}")
-        
-        logger.info("✓ Backend shutdown complete")
+        database = get_database()
+        await database.disconnect()
+        logger.info("✓ Database disconnected")
+    except Exception as e:
+        logger.error(f"Error during database shutdown: {e}")
+    logger.info("✓ Backend shutdown complete")
 

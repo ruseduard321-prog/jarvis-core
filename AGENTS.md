@@ -13,6 +13,7 @@ This repository combines a Next.js frontend and a Python FastAPI backend. Keep i
 - Frontend: `app/` with Next.js `16.2.10`, React `19.2.4`, Tailwind CSS.
 - Backend: `backend/` with FastAPI, Pydantic, service/repository layers, and `backend/main.py` entrypoint.
 - Documentation: use `docs/architecture/ARCHITECTURE.md`, `docs/standards/DEV_STANDARDS.md`, `docs/standards/AI_RULES.md` rather than duplicating details.
+- Normal chat always executes through `AgentRuntime` → `AgentOrchestrator` (`backend/core/agent_runtime.py`, `agent_orchestrator.py`), defaulting to the seeded `general` (General Assistant) agent when no `agent_id` is supplied. There is no separate "plain LLM" chat path anymore. See `PROJECT_STATE.md` for details.
 
 ## Build / run
 

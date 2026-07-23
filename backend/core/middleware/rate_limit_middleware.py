@@ -27,6 +27,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.endpoint_limits = endpoint_limits or {}
 
     async def dispatch(self, request: Request, call_next: Callable[[Request], Response]) -> Response:
+        # Skip rate limiting for CORS preflight requests
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        
+        # Skip rate limiting for conversations endpoint in dev mode
+        if request.url.path == "/api/v1/conversations":
+            return await call_next(request)
+        
+        # Skip rate limiting for streaming endpoints
+        if "/chat/stream" in request.url.path:
+            return await call_next(request)
+        
         path = request.url.path
         identifier = get_client_identifier(request)
         namespace = "rate_limit"
@@ -49,6 +61,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     "count": count,
                 },
             )
+            # Build response headers with CORS support
+            response_headers = {
+                "Retry-After": str(retry_after),
+                "X-RateLimit-Limit": str(limit),
+                "X-RateLimit-Remaining": str(remaining),
+                "X-RateLimit-Reset": str(reset_timestamp),
+            }
+            
+            # Add CORS headers for browser requests
+            origin = request.headers.get("origin")
+            if origin == "http://localhost:3000":
+                response_headers.update({
+                    "Access-Control-Allow-Origin": "http://localhost:3000",
+                    "Access-Control-Allow-Credentials": "true",
+                })
+            
             return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 content={
@@ -57,12 +85,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     "status_code": status.HTTP_429_TOO_MANY_REQUESTS,
                     "request_id": getattr(request.state, "request_id", "-"),
                 },
-                headers={
-                    "Retry-After": str(retry_after),
-                    "X-RateLimit-Limit": str(limit),
-                    "X-RateLimit-Remaining": str(remaining),
-                    "X-RateLimit-Reset": str(reset_timestamp),
-                },
+                headers=response_headers,
             )
 
         response = await call_next(request)

@@ -21,12 +21,27 @@ export const API_ENDPOINTS = {
   },
   // Knowledge
   KNOWLEDGE: {
-    LIST: "/knowledge",
-    CREATE: "/knowledge",
-    GET: (id: string) => `/knowledge/${id}`,
-    UPDATE: (id: string) => `/knowledge/${id}`,
-    DELETE: (id: string) => `/knowledge/${id}`,
-    SEARCH: "/knowledge/search",
+    LIST: "/knowledge/documents",
+    GET: (id: string) => `/knowledge/documents/${id}`,
+    DELETE: (id: string) => `/knowledge/documents/${id}`,
+    UPLOAD: "/documents/upload",
+  },
+  // Memory
+  MEMORY: {
+    LIST: "/memory",
+    CREATE: "/memory",
+    GET: (id: string) => `/memory/${id}`,
+    UPDATE: (id: string) => `/memory/${id}`,
+    DELETE: (id: string) => `/memory/${id}`,
+    QUERY: "/memory/query",
+  },
+  // Prompts
+  PROMPTS: {
+    LIST: "/prompts",
+    CREATE: "/prompts",
+    GET: (id: string) => `/prompts/${id}`,
+    UPDATE: (id: string) => `/prompts/${id}`,
+    DELETE: (id: string) => `/prompts/${id}`,
   },
   // Documents
   DOCUMENTS: {
@@ -39,13 +54,17 @@ export const API_ENDPOINTS = {
   TOOLS: {
     LIST: "/tools",
     GET: (id: string) => `/tools/${id}`,
-    EXECUTE: (id: string) => `/tools/${id}/execute`,
   },
   // Agents
   AGENTS: {
     LIST: "/agents",
+    CREATE: "/agents",
     GET: (id: string) => `/agents/${id}`,
-    EXECUTE: (id: string) => `/agents/${id}/execute`,
+    UPDATE: (id: string) => `/agents/${id}`,
+  },
+  // Dashboard
+  DASHBOARD: {
+    GET: "/dashboard",
   },
 };
 

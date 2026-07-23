@@ -17,6 +17,10 @@ class ConversationStore(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
+    async def list_conversations(self) -> list[Conversation]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
     async def get_conversation(self, conversation_id: str) -> Conversation:
         raise NotImplementedError
 
@@ -56,9 +60,35 @@ class InMemoryConversationStore(ConversationStore):
         )
         conversation = Conversation(context=context, messages=[])
         self._conversations[conversation_id] = conversation
+        # DEBUG LOGGING
+        print(f'\n=== POST /conversations ===')
+        print(f"Store object: {hex(id(self))}")
+        print(f"Dictionary object: {hex(id(self._conversations))}")
+        print(f"Created: {conversation_id}")
+        print()
         return conversation
 
+    async def list_conversations(self) -> list[Conversation]:
+        # DEBUG LOGGING
+        print(f'\n=== GET /conversations ===')
+        print(f"Store object: {hex(id(self))}")
+        print(f"Dictionary object: {hex(id(self._conversations))}")
+        print(f"Keys:")
+        for key in self._conversations.keys():
+            print(f"  - {key}")
+        print()
+        return list(self._conversations.values())
+
     async def get_conversation(self, conversation_id: str) -> Conversation:
+        # DEBUG LOGGING
+        print(f'\n=== GET /conversations/{{id}}/messages ===')
+        print(f"Store object: {hex(id(self))}")
+        print(f"Dictionary object: {hex(id(self._conversations))}")
+        print(f"Keys:")
+        for key in self._conversations.keys():
+            print(f"  - {key}")
+        print(f"Requested: {conversation_id}")
+        print()
         conversation = self._conversations.get(conversation_id)
         if conversation is None:
             raise ConversationNotFoundError(f"Conversation not found: {conversation_id}")

@@ -14,10 +14,11 @@ interface ProtectedAppLayoutProps {
  * Redirects to login if not authenticated
  */
 export function ProtectedAppLayout({ children }: ProtectedAppLayoutProps) {
-  const { isLoading } = useProtectedRoute();
+  const { isLoading, canAccess } = useProtectedRoute();
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+  // Show loading state while checking authentication, or while an unauthenticated
+  // user is being redirected — never mount the app shell/page content for them.
+  if (isLoading || !canAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">

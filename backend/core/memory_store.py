@@ -43,6 +43,10 @@ class MemoryStore(abc.ABC):
     async def query_memory(self, query: MemoryQuery) -> MemoryResult:
         raise NotImplementedError
 
+    @abc.abstractmethod
+    async def list_memory(self, limit: int = 20, offset: int = 0) -> MemoryResult:
+        raise NotImplementedError
+
 
 class InMemoryMemoryStore(MemoryStore):
     """In-memory memory store for development and foundational use."""
@@ -140,3 +144,16 @@ class InMemoryMemoryStore(MemoryStore):
             filtered = filtered[offset:]
 
         return MemoryResult(records=filtered, total_count=total_count)
+
+    async def list_memory(self, limit: int = 20, offset: int = 0) -> MemoryResult:
+        async with self._lock:
+            records = list(self._memories.values())
+
+        # Order by created_at DESC (newest first)
+        records.sort(key=lambda r: r.created_at, reverse=True)
+        total_count = len(records)
+
+        offset = max(0, offset)
+        paginated = records[offset : offset + limit]
+
+        return MemoryResult(records=paginated, total_count=total_count)

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useCallback, useRef } from "react";
 import { useAuthStore } from "@/store";
 import { authService } from "@/services/auth-service";
 import type { AuthContextValue } from "@/types";
@@ -13,52 +13,63 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const store = useAuthStore();
+  // Use a ref so the one-time init effect can read current store state
+  // without taking the entire store as a reactive dependency.
+  const storeRef = useRef(store);
+  useEffect(() => {
+    storeRef.current = store;
+  });
 
-  // Initialize session from persisted storage
+  // Initialize session from persisted storage — runs ONCE on mount.
+  // Reading from storeRef.current (stable) avoids the infinite-loop caused
+  // by store being a new reference after every setState call.
   useEffect(() => {
     const initializeAuth = async () => {
-      store.setLoading(true);
+      const s = storeRef.current;
+      s.setLoading(true);
 
       // Check if we have a valid session in storage
-      if (store.accessToken && store.expiresAt) {
+      if (s.accessToken && s.expiresAt) {
         // Check if token is expired
-        if (!store.isTokenExpired()) {
+        if (!s.isTokenExpired()) {
           // Token is still valid, try to fetch user
           const response = await authService.getCurrentUser();
           if (response.status === 200 && response.data) {
-            store.setUser(response.data);
+            s.setUser(response.data);
           } else {
             // User fetch failed, clear auth
-            store.clearAuth();
+            s.clearAuth();
           }
         } else {
           // Token is expired, try to refresh
-          if (store.refreshToken) {
-            const response = await authService.refreshToken(store.refreshToken);
+          if (s.refreshToken) {
+            const response = await authService.refreshToken(s.refreshToken);
             if (response.status === 200 && response.data) {
-              store.setAuth(response.data, store.user || { id: "", email: "" });
+              s.setAuth(response.data, s.user || { id: "", email: "" });
             } else {
               // Refresh failed, clear auth
-              store.clearAuth();
+              s.clearAuth();
             }
           } else {
             // No refresh token, clear auth
-            store.clearAuth();
+            s.clearAuth();
           }
         }
       }
 
-      store.setLoading(false);
+      s.setLoading(false);
     };
 
     initializeAuth();
-  }, [store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — run once on mount
 
   // Login
   const login = useCallback(
     async (email: string, password: string) => {
-      store.setLoading(true);
-      store.setError(null);
+      const s = storeRef.current;
+      s.setLoading(true);
+      s.setError(null);
 
       try {
         // Sign in with credentials
@@ -70,7 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const session = signInResponse.data;
 
-        // Fetch current user
+        // CRITICAL: Store tokens immediately so they're available for subsequent requests
+        s.setTokens(session.access_token, session.refresh_token, session.expires_at);
+
+        // Now fetch current user (this request will have the Authorization header with the token)
         const userResponse = await authService.getCurrentUser();
 
         if (userResponse.status !== 200 || !userResponse.data) {
@@ -79,55 +93,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const user = userResponse.data;
 
-        // Store session and user
-        store.setAuth(session, user);
-        store.setLoading(false);
+        // Store full session with user data
+        s.setAuth(session, user);
+        s.setLoading(false);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Sign in failed";
-        store.setError(message);
-        store.setLoading(false);
+        storeRef.current.setError(message);
+        storeRef.current.setLoading(false);
         throw error;
       }
     },
-    [store]
+    []
   );
 
   // Logout
   const logout = useCallback(async () => {
-    store.setLoading(true);
+    const s = storeRef.current;
+    s.setLoading(true);
 
     try {
       // Try to sign out on backend
-      if (store.refreshToken) {
-        await authService.signOut(store.refreshToken);
+      if (s.refreshToken) {
+        await authService.signOut(s.refreshToken);
       }
     } catch (_error) {
       // Ignore errors on sign-out
     } finally {
       // Clear local auth state
-      store.clearAuth();
-      store.setLoading(false);
+      s.clearAuth();
+      s.setLoading(false);
     }
-  }, [store]);
+  }, []);
 
   // Restore session (manual trigger)
   const restoreSession = useCallback(async () => {
-    store.setLoading(true);
+    const s = storeRef.current;
+    s.setLoading(true);
 
     try {
       const response = await authService.getCurrentUser();
 
       if (response.status === 200 && response.data) {
-        store.setUser(response.data);
+        s.setUser(response.data);
       } else {
-        store.clearAuth();
+        s.clearAuth();
       }
     } catch (_error) {
-      store.clearAuth();
+      s.clearAuth();
     } finally {
-      store.setLoading(false);
+      s.setLoading(false);
     }
-  }, [store]);
+  }, []);
 
   const value: AuthContextValue = {
     user: store.user,

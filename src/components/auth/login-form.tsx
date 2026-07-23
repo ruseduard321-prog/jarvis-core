@@ -197,7 +197,7 @@ export function LoginForm({ className }: LoginFormProps) {
 
       {/* Sign Up Link */}
       <p className="text-center text-sm text-muted-foreground">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <a href="/sign-up" className="text-primary hover:underline font-medium">
           Sign up
         </a>

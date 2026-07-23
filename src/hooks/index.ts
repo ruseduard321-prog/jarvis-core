@@ -80,6 +80,7 @@ export function useMediaQuery(query: string): boolean {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(query);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMatches(mediaQuery.matches);
 
     const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
@@ -98,6 +99,7 @@ export function useMounted(): boolean {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -112,13 +114,11 @@ export function useBoolean(
 ): [boolean, { on: () => void; off: () => void; toggle: () => void }] {
   const [value, setValue] = useState(initialValue);
 
-  const handlers = useRef({
-    on: () => setValue(true),
-    off: () => setValue(false),
-    toggle: () => setValue((v) => !v),
-  });
+  const on = useCallback(() => setValue(true), []);
+  const off = useCallback(() => setValue(false), []);
+  const toggle = useCallback(() => setValue((v) => !v), []);
 
-  return [value, handlers.current];
+  return [value, { on, off, toggle }];
 }
 
 /**
@@ -131,6 +131,7 @@ export function usePrevious<T>(value: T): T | undefined {
     ref.current = value;
   }, [value]);
 
+  // eslint-disable-next-line react-hooks/refs
   return ref.current;
 }
 
@@ -219,6 +220,7 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
 ): (...args: Parameters<T>) => void {
+  // eslint-disable-next-line react-hooks/purity
   const lastRun = useRef<number>(Date.now());
 
   return useCallback(

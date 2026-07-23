@@ -31,6 +31,9 @@ def validate_configuration(settings_obj: Settings) -> None:
 
 
 def _validate_database(settings_obj: Settings, errors: list[str]) -> None:
+    # In debug mode, Supabase is optional (dev auth bypass is used instead).
+    if settings_obj.debug:
+        return
     if settings_obj.supabase_url is None or not settings_obj.supabase_url.strip():
         errors.append("Database configuration missing: SUPABASE_URL")
     if settings_obj.supabase_key is None or not settings_obj.supabase_key.strip():

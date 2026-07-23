@@ -18,6 +18,9 @@ class ConversationEngineService(ConversationEngine):
     async def create_conversation(self, title: str | None = None, metadata: dict[str, object] | None = None) -> Conversation:
         return await self._store.create_conversation(title=title, metadata=metadata)
 
+    async def list_conversations(self) -> list[Conversation]:
+        return await self._store.list_conversations()
+
     async def load_conversation(self, conversation_id: str) -> Conversation:
         return await self._store.get_conversation(conversation_id)
 

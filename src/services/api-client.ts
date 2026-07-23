@@ -1,13 +1,17 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from "axios";
 import { API_BASE_URL, API_ENDPOINTS } from "@/constants";
+import { useAuthStore } from "@/store";
 import type { ApiResponse, AuthSession } from "@/types";
 
 /**
  * API Client Service
- * 
+ *
  * Handles HTTP requests with automatic token refresh and error handling.
  * This is a utility class that doesn't use React hooks directly.
- * Token management is handled by the AuthProvider and stored in localStorage.
+ * Token state is read/written exclusively via the Zustand auth store
+ * (useAuthStore.getState()) so there is a single source of truth — this class
+ * must never read or write the "auth-storage" localStorage key directly, since
+ * Zustand's persist middleware would silently clobber out-of-band writes.
  */
 class ApiClient {
   private client: AxiosInstance;
@@ -81,78 +85,31 @@ class ApiClient {
   }
 
   /**
-   * Get access token from localStorage
+   * Get access token from the auth store
    */
   private getAccessToken(): string | null {
-    if (typeof window === "undefined") return null;
-    try {
-      const authData = localStorage.getItem("auth-storage");
-      if (!authData) return null;
-      const parsed = JSON.parse(authData);
-      return parsed.state?.accessToken || null;
-    } catch {
-      return null;
-    }
+    return useAuthStore.getState().accessToken;
   }
 
   /**
-   * Get refresh token from localStorage
+   * Get refresh token from the auth store
    */
   private getRefreshToken(): string | null {
-    if (typeof window === "undefined") return null;
-    try {
-      const authData = localStorage.getItem("auth-storage");
-      if (!authData) return null;
-      const parsed = JSON.parse(authData);
-      return parsed.state?.refreshToken || null;
-    } catch {
-      return null;
-    }
+    return useAuthStore.getState().refreshToken;
   }
 
   /**
-   * Update tokens in localStorage
+   * Update tokens in the auth store
    */
   private setTokens(accessToken: string, refreshToken: string, expiresAt: string): void {
-    if (typeof window === "undefined") return;
-    try {
-      const authData = localStorage.getItem("auth-storage");
-      if (!authData) return;
-      const parsed = JSON.parse(authData);
-      parsed.state = {
-        ...parsed.state,
-        accessToken,
-        refreshToken,
-        expiresAt,
-      };
-      localStorage.setItem("auth-storage", JSON.stringify(parsed));
-    } catch {
-      // Ignore
-    }
+    useAuthStore.getState().setTokens(accessToken, refreshToken, expiresAt);
   }
 
   /**
-   * Clear tokens from localStorage
+   * Clear tokens in the auth store
    */
   private clearTokens(): void {
-    if (typeof window === "undefined") return;
-    try {
-      const authData = localStorage.getItem("auth-storage");
-      if (!authData) return;
-      const parsed = JSON.parse(authData);
-      parsed.state = {
-        ...parsed.state,
-        accessToken: null,
-        refreshToken: null,
-        expiresAt: null,
-        user: null,
-        userId: null,
-        isAuthenticated: false,
-      };
-      localStorage.setItem("auth-storage", JSON.stringify(parsed));
-    } catch {
-      // Ignore
-    }
+    useAuthStore.getState().clearAuth();
   }
 
   /**

@@ -47,6 +47,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
                 "duration_ms": round(elapsed_ms, 2),
             },
         )
+        return response
 
         response.headers["X-Request-ID"] = request_id
         return response

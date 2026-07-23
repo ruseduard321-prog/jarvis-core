@@ -1,0 +1,85 @@
+[
+  {
+    "slug": "general",
+    "name": "General Assistant",
+    "mission": "General operational assistant for Jarvis.",
+    "allowed_delegations": [
+      "strategy",
+      "research",
+      "creation",
+      "review",
+      "media",
+      "publishing",
+      "analytics"
+    ]
+  },
+  {
+    "slug": "strategy",
+    "name": "Strategy Agent",
+    "mission": "Identify the highest-value opportunities.",
+    "allowed_delegations": [
+      "research",
+      "analytics"
+    ]
+  },
+  {
+    "slug": "research",
+    "name": "Research Agent",
+    "mission": "Collect reliable information and build context.",
+    "allowed_delegations": [
+      "strategy",
+      "creation",
+      "review",
+      "analytics"
+    ]
+  },
+  {
+    "slug": "creation",
+    "name": "Creation Agent",
+    "mission": "Create production-ready content.",
+    "allowed_delegations": [
+      "research",
+      "review",
+      "media",
+      "publishing"
+    ]
+  },
+  {
+    "slug": "review",
+    "name": "Review Agent",
+    "mission": "Guarantee quality before publication.",
+    "allowed_delegations": [
+      "research",
+      "creation",
+      "analytics"
+    ]
+  },
+  {
+    "slug": "media",
+    "name": "Media Agent",
+    "mission": "Produce media assets.",
+    "allowed_delegations": [
+      "creation",
+      "review",
+      "publishing"
+    ]
+  },
+  {
+    "slug": "publishing",
+    "name": "Publishing Agent",
+    "mission": "Deliver completed work to its destination.",
+    "allowed_delegations": [
+      "review",
+      "analytics"
+    ]
+  },
+  {
+    "slug": "analytics",
+    "name": "Analytics Agent",
+    "mission": "Measure results and generate feedback.",
+    "allowed_delegations": [
+      "strategy",
+      "research"
+    ]
+  }
+]

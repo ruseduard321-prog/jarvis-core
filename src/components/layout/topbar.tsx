@@ -243,7 +243,7 @@ function UserMenu() {
   const { user, logout, isLoading } = useAuth();
 
   // Get initials from user name or email
-  const getInitials = (user: any) => {
+  const getInitials = (user: { full_name?: string | null; email?: string } | null) => {
     if (user?.full_name) {
       return user.full_name
         .split(" ")
@@ -270,7 +270,7 @@ function UserMenu() {
 }
 
 interface UserMenuPanelProps {
-  user: any;
+  user: { full_name?: string | null; email?: string } | null;
   logout: () => Promise<void>;
   isLoading: boolean;
 }
